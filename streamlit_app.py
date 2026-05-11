@@ -18,6 +18,53 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap');
 
+/* Custom i tooltip */
+.info-tooltip {
+    position: relative;
+    display: inline-block;
+    margin-left: 6px;
+    cursor: help;
+}
+.info-tooltip .info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #2a6a3a;
+    color: #4dff91;
+    font-size: 11px;
+    font-weight: 700;
+    font-style: italic;
+    font-family: Georgia, serif;
+    border: 1px solid #4dff91;
+    vertical-align: middle;
+}
+.info-tooltip .tooltip-box {
+    visibility: hidden;
+    opacity: 0;
+    width: 240px;
+    background: #0d3a1a;
+    color: #e0f0e0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid #2a6a3a;
+    position: absolute;
+    z-index: 9999;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: opacity 0.2s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.info-tooltip:hover .tooltip-box {
+    visibility: visible;
+    opacity: 1;
+}
+
 html, body, [class*="css"] {
     font-family: 'Space Grotesk', sans-serif;
 }
@@ -229,22 +276,39 @@ st.markdown("---")
 col1, col2, col3, col4 = st.columns(4)
 prev_df = df[df["Year"] == (selected_year - 1)] if (selected_year - 1) in df["Year"].values else None
 
-with col1:
-    delta_co2 = round(filtered_df['CO2_Emissions'].values[0] - prev_df['CO2_Emissions'].values[0], 1) if prev_df is not None else None
-    st.metric("🌫️ CO₂ Emissions", f"{filtered_df['CO2_Emissions'].values[0]} Gt", delta=f"{delta_co2} Gt" if delta_co2 else None, delta_color="inverse",
-              help="Total carbon dioxide released into the atmosphere. Measured in Gigatonnes (Gt). Lower is better. 1 Gt = 1 billion metric tons.")
-with col2:
-    delta_re = round(filtered_df['Renewable_Energy'].values[0] - prev_df['Renewable_Energy'].values[0], 1) if prev_df is not None else None
-    st.metric("⚡ Renewable Energy", f"{filtered_df['Renewable_Energy'].values[0]}%", delta=f"{delta_re}%" if delta_re else None,
-              help="% of total energy from renewable sources like solar, wind & hydro. Higher % = better sustainability.")
-with col3:
-    delta_esg = round(filtered_df['ESG_Score'].values[0] - prev_df['ESG_Score'].values[0], 1) if prev_df is not None else None
-    st.metric("📊 ESG Score", filtered_df['ESG_Score'].values[0], delta=delta_esg if delta_esg else None,
-              help="ESG = Environmental, Social & Governance. Score out of 100. Above 70 = Good. Above 85 = Excellent.")
-with col4:
-    net_zero_progress = min(100, int((filtered_df['Renewable_Energy'].values[0] / 100) * 200))
-    st.metric("🌱 Net Zero Progress", f"{filtered_df['ESG_Score'].values[0]}%",
-              help="Net Zero = balancing carbon emitted with carbon removed. 100% = fully aligned with global Net Zero 2050 targets.")
+delta_co2 = round(filtered_df['CO2_Emissions'].values[0] - prev_df['CO2_Emissions'].values[0], 1) if prev_df is not None else None
+delta_re  = round(filtered_df['Renewable_Energy'].values[0] - prev_df['Renewable_Energy'].values[0], 1) if prev_df is not None else None
+delta_esg = round(filtered_df['ESG_Score'].values[0] - prev_df['ESG_Score'].values[0], 1) if prev_df is not None else None
+
+def kpi_card(col, emoji, title, value, delta, tooltip):
+    delta_html = ""
+    if delta is not None:
+        color = "#ff6b6b" if title == "🌫️ CO₂ Emissions" and delta > 0 else ("#4dff91" if delta >= 0 else "#ff6b6b")
+        arrow = "▲" if delta >= 0 else "▼"
+        delta_html = f"<div style='color:{color};font-size:0.85rem;margin-top:6px'>{arrow} {abs(delta)}</div>"
+    col.markdown(f"""
+<div style='background:linear-gradient(135deg,#0d3a1a,#0a2a2a);border:1px solid #2a6a3a;
+            border-radius:12px;padding:18px 20px;box-shadow:0 4px 20px rgba(0,200,80,0.1);min-height:110px'>
+  <div style='color:#90c0a0;font-size:0.85rem;margin-bottom:6px;display:flex;align-items:center;gap:6px'>
+    <span>{emoji} {title}</span>
+    <span class="info-tooltip">
+      <span class="info-icon">i</span>
+      <span class="tooltip-box">{tooltip}</span>
+    </span>
+  </div>
+  <div style='color:#4dff91;font-size:2rem;font-weight:700;line-height:1'>{value}</div>
+  {delta_html}
+</div>
+""", unsafe_allow_html=True)
+
+kpi_card(col1, "🌫️", "CO₂ Emissions",     f"{filtered_df['CO2_Emissions'].values[0]} Gt",  delta_co2,
+         "Total carbon dioxide released into the atmosphere. Measured in Gigatonnes (Gt). Lower is better for the climate.")
+kpi_card(col2, "⚡", "Renewable Energy",   f"{filtered_df['Renewable_Energy'].values[0]}%", delta_re,
+         "Percentage of total energy from renewable sources like solar, wind & hydro power. Higher % = better sustainability.")
+kpi_card(col3, "📊", "ESG Score",          f"{filtered_df['ESG_Score'].values[0]}/100",     delta_esg,
+         "ESG = Environmental, Social & Governance. Score out of 100. Above 70 = Good. Above 85 = Excellent performance.")
+kpi_card(col4, "🌱", "Net Zero Progress",  f"{filtered_df['ESG_Score'].values[0]}%",        None,
+         "Net Zero = balancing carbon emitted with carbon removed from the atmosphere. 100% = fully aligned with Net Zero 2050 targets.")
 
 st.markdown("---")
 

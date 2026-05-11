@@ -198,9 +198,21 @@ if "Fossil_Energy" not in df.columns:
     df["Fossil_Energy"] = 100 - df["Renewable_Energy"]
 
 st.sidebar.markdown("---")
-selected_year = st.sidebar.selectbox("📅 Select Year", sorted(df["Year"].unique(), reverse=True))
-sector = st.sidebar.selectbox("🏭 Select Sector", ["Banking", "Energy", "Manufacturing", "Agriculture"])
-risk_type = st.sidebar.radio("⚠️ Risk Focus", ["Physical Risk", "Transition Risk"])
+selected_year = st.sidebar.selectbox(
+    "📅 Select Year",
+    sorted(df["Year"].unique(), reverse=True),
+    help="Filter all dashboard data by the selected year."
+)
+sector = st.sidebar.selectbox(
+    "🏭 Select Sector",
+    ["Banking", "Energy", "Manufacturing", "Agriculture"],
+    help="Banking: Financial institutions & lenders.\nEnergy: Oil, gas & renewable companies.\nManufacturing: Industrial production firms.\nAgriculture: Farming & food production."
+)
+risk_type = st.sidebar.radio(
+    "⚠️ Risk Focus",
+    ["Physical Risk", "Transition Risk"],
+    help="Physical Risk: Direct damage from climate events like floods, droughts & heatwaves.\nTransition Risk: Financial impact of shifting to a low-carbon economy (carbon taxes, new regulations)."
+)
 
 filtered_df = df[df["Year"] == selected_year]
 
@@ -219,16 +231,20 @@ prev_df = df[df["Year"] == (selected_year - 1)] if (selected_year - 1) in df["Ye
 
 with col1:
     delta_co2 = round(filtered_df['CO2_Emissions'].values[0] - prev_df['CO2_Emissions'].values[0], 1) if prev_df is not None else None
-    st.metric("🌫️ CO₂ Emissions", f"{filtered_df['CO2_Emissions'].values[0]} Gt", delta=f"{delta_co2} Gt" if delta_co2 else None, delta_color="inverse")
+    st.metric("🌫️ CO₂ Emissions", f"{filtered_df['CO2_Emissions'].values[0]} Gt", delta=f"{delta_co2} Gt" if delta_co2 else None, delta_color="inverse",
+              help="Total carbon dioxide released into the atmosphere. Measured in Gigatonnes (Gt). Lower is better. 1 Gt = 1 billion metric tons.")
 with col2:
     delta_re = round(filtered_df['Renewable_Energy'].values[0] - prev_df['Renewable_Energy'].values[0], 1) if prev_df is not None else None
-    st.metric("⚡ Renewable Energy", f"{filtered_df['Renewable_Energy'].values[0]}%", delta=f"{delta_re}%" if delta_re else None)
+    st.metric("⚡ Renewable Energy", f"{filtered_df['Renewable_Energy'].values[0]}%", delta=f"{delta_re}%" if delta_re else None,
+              help="% of total energy from renewable sources like solar, wind & hydro. Higher % = better sustainability.")
 with col3:
     delta_esg = round(filtered_df['ESG_Score'].values[0] - prev_df['ESG_Score'].values[0], 1) if prev_df is not None else None
-    st.metric("📊 ESG Score", filtered_df['ESG_Score'].values[0], delta=delta_esg if delta_esg else None)
+    st.metric("📊 ESG Score", filtered_df['ESG_Score'].values[0], delta=delta_esg if delta_esg else None,
+              help="ESG = Environmental, Social & Governance. Score out of 100. Above 70 = Good. Above 85 = Excellent.")
 with col4:
     net_zero_progress = min(100, int((filtered_df['Renewable_Energy'].values[0] / 100) * 200))
-    st.metric("🌱 Net Zero Progress", f"{filtered_df['ESG_Score'].values[0]}%")
+    st.metric("🌱 Net Zero Progress", f"{filtered_df['ESG_Score'].values[0]}%",
+              help="Net Zero = balancing carbon emitted with carbon removed. 100% = fully aligned with global Net Zero 2050 targets.")
 
 st.markdown("---")
 
